@@ -1,105 +1,105 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >= 0.5.0 < 0.9.0;
 
-contract TweetContract{
+contract Twitter {
     struct Tweet{
-        uint id;
-        address author;
-        string content;
-        uint createdAt;
+        uint tweetId;
+        address tweetAuthor;
+        string tweetContent;
+        uint tweetedAt;
     }
 
-    struct Message {
-        uint id;
-        string content;
-        address from;
-        address to;
-        uint createdAt;
+    struct DM {
+        uint DMId;
+        string DMContent;
+        address DMfrom;
+        address DMto;
+        uint DMedAt;
     }
 
     mapping( uint => Tweet ) public tweets;
     mapping( address => uint[] ) public tweetsOf;
-    mapping( address => Message[] ) public conversations;
-    mapping( address => mapping( address => bool )) public operators;
+    mapping( address => DM[] ) conversations;
+    mapping( address => mapping( address => bool )) operators;
     mapping( address => address[] ) public following;
 
-    uint nextId;
-    uint nextMessageId;
+    uint nextTweetId;
+    uint nextDMId;
 
-    function _tweet(address _from, string memory _content) internal {
-        tweets[nextId] = Tweet(nextId, _from, _content, block.timestamp);
-        tweetsOf[_from].push(nextId);
-        nextId = nextId + 1;
+    function tweet(address tweetFrom, string calldata tweetContent) public {
+        operators[msg.sender][msg.sender] = true;
+        require(operators[tweetFrom][msg.sender] == true, "You can't tweet on behalf of said address's account!");
+        tweets[nextTweetId] = Tweet(nextTweetId, tweetFrom, tweetContent, block.timestamp);
+        tweetsOf[tweetFrom].push(nextTweetId);
+        nextTweetId++;
     }
 
-    function _sendMessage(address _from, address _to, string memory _content) internal {
-        conversations[_from].push( Message ( nextMessageId, _content, _from, _to, block.timestamp ));
-        nextMessageId++;
-    }
-    
-    function tweet(string memory _content) public {   // owner
-        _tweet( msg.sender, _content );
+    function DMm(address DMfrom, address DMto, string calldata DMContent) public {
+        operators[msg.sender][msg.sender] = true;
+        require(operators[DMfrom][msg.sender] == true, "You can't DM on behalf of said address's account!");
+        conversations[DMfrom].push( DM ( nextDMId, DMContent, DMfrom, DMto, block.timestamp ) );
+        nextDMId++;
     }
 
-    function tweet(address _from, string memory _content) public {   // owner -> address access
-        _tweet(_from, _content);
-    } 
-
-    function sendMessage(string memory _content, address _to) public {
-        _sendMessage(msg.sender, _to, _content);
+    function follow(address OnBehalfOf, address followThis) public {
+        operators[msg.sender][msg.sender] = true;
+        require(operators[OnBehalfOf][msg.sender] == true, "You can't follow this user on behalf of said user!");
+        following[OnBehalfOf].push(followThis);
     }
 
-    function sendMessage(address _from, address _to, string memory _content) public {
-        _sendMessage(_from, _to, _content);
-    }
-
-    function follow(address _followed) public {
-        following[msg.sender].push(_followed);
-    }
-
-    function allow(address _operator) public {
-        operators[msg.sender][_operator] = true;
+    function allow(address operator) public {
+        operators[msg.sender][operator] = true;
     }
     
-    function disallow(address _operator) public {
-        operators[msg.sender][_operator] = false;
+    function disallow(address operator) public {
+        operators[msg.sender][operator] = false;
     }
 
     function getLatestTweets(uint count) public view returns(Tweet[] memory) {
-        require(count > 0 && count <= nextId, "Count is not proper!");
-        Tweet[] memory _tweets = new Tweet[](count);   //array length - count
+        require(count > 0 && count <= nextTweetId, "Count is not proper!");
+        Tweet[] memory _tweets = new Tweet[](count);   //array length = count
 
         uint j;
 
-        for(uint i = nextId - count; i < nextId; i++ ) {   // count = 5 nextId = 7; 7 - 5 = 2, 3, 4, 5, 6
-        Tweet storage _structure = tweets[i];
+        for(uint i = nextTweetId - 1; i >= nextTweetId - count;) {   // count = 5 nextId = 7; 7 - 5 = 2, 3, 4, 5, 6
+        Tweet storage structure = tweets[i];
 
-        _tweets[j] = Tweet(_structure.id,
-                           _structure.author,
-                           _structure.content,
-                           _structure.createdAt);
+        _tweets[j] = Tweet(structure.tweetId,
+                           structure.tweetAuthor,
+                           structure.tweetContent,
+                           structure.tweetedAt);
 
-                           j = j + 1;
+                           j++;
+                           if(i != 0){ 
+                               i--; 
+                            } else {
+                                break;
+                            }
         }
         return _tweets;
     }
 
-    function getLatestOfUser(address _user, uint count) public view returns(Tweet[] memory) {
-        Tweet[] memory _tweets = new Tweet[](count);   //new memory array whose length is count. tweetsOf[_user] is having all the ids of the user's tweets.
+    function getLatestTweetsOfUser(address user, uint count) public view returns(Tweet[] memory) {
+        Tweet[] memory _tweets = new Tweet[](count);   //new memory array whose length is count. tweetsOf[user] is having all the ids of the user's tweets.
         
-        uint[] memory ids = tweetsOf[_user];   // ids is an array
+        uint[] memory ids = tweetsOf[user];   // ids is an array.
 
-        require(count > 0 && count <= ids.length, "Count is not defined!");
+        require(count > 0 && count <= ids.length, "Count is improper!");
         uint j;
-        for(uint i = ids.length - count; i < ids.length; i++) { // 5 - 3 = 2, 3, 4
-        Tweet storage _structure = tweets[ids[i]];   // i = 2 ids[2] = 15 tweets[15]
+        for(uint i = ids.length - 1; i >= ids.length - count;) { // 5 - 3 = 2, 3, 4
+        Tweet storage structure = tweets[ids[i]];   // i = 2 ids[2] = 15 tweets[15]
 
-        _tweets[j] = Tweet(_structure.id,
-                           _structure.author,
-                           _structure.content,
-                           _structure.createdAt);
+        _tweets[j] = Tweet(structure.tweetId,
+                           structure.tweetAuthor,
+                           structure.tweetContent,
+                           structure.tweetedAt);
 
-                           j = j + 1;
+                           j++;
+                           if(i != 0 ){
+                               i--;
+                           } else {
+                               break;
+                           }
 
         }
         return _tweets;
