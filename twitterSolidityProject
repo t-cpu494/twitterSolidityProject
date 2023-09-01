@@ -17,11 +17,11 @@ contract Twitter {
         uint DMedAt;
     }
 
-    mapping( uint => Tweet ) public tweets;
-    mapping( address => uint[] ) public tweetsOf;
+    mapping( uint => Tweet ) tweets;
+    mapping( address => uint[] ) tweetsOf;
     mapping( address => DM[] ) conversations;
     mapping( address => mapping( address => bool )) operators;
-    mapping( address => address[] ) public following;
+    mapping( address => address[] ) following;
 
     uint nextTweetId;
     uint nextDMId;
@@ -104,4 +104,28 @@ contract Twitter {
         }
         return _tweets;
         }
+
+        function myConversations(address me) public view returns(DM[] memory) {
+            require(me == msg.sender, "You cannot view other user's conversations!");
+            return conversations[me];
+        }
+
+        function seeFollowing(address addresss) public view returns(address[] memory) {
+            return following[addresss];
+        }
+
+        function checkOperator(address me, address operator) public view returns(bool) {
+            require(me == msg.sender, "You cannot view other user's operators!");
+            return operators[me][operator];
+        }
+
+        function unfollow(address OnBehalfOf, address unfollowThis) public {
+        operators[msg.sender][msg.sender] = true;
+        require(operators[OnBehalfOf][msg.sender] == true, "You can't unfollow this user on behalf of said user!");
+        for(uint i = 0; i < following[OnBehalfOf].length; i++) {
+            if(following[OnBehalfOf][i] == unfollowThis) {
+                delete following[OnBehalfOf][i];
+            }
+        }        
+    }
     }
