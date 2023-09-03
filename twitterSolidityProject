@@ -115,6 +115,7 @@ contract Twitter {
         }
 
         function checkOperator(address me, address operator) public view returns(bool) {
+            if(me == operator) { return true; }
             require(me == msg.sender, "You cannot view other user's operators!");
             return operators[me][operator];
         }
